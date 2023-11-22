@@ -10,6 +10,8 @@ def u_exact(x, t):
 
 
 torch.set_default_dtype(torch.float64)
+torch.manual_seed(0)
+np.random.seed(0)
 nx, nt = 26, 26
 b = math.sqrt(6 / (nt * nx))
 u = torch.tensor(np.random.uniform(-b, b, (nt, nx)), requires_grad=True)
@@ -28,10 +30,10 @@ for epoch in range(1, 501):
         u_tt = (u[2:, 1:-1] - 2 * u[1:-1, 1:-1] + u[:-2, 1:-1]) * nt**2
         pde_loss = torch.mean((u_tt - 4 * u_xx)**2)
         ic_loss = (u[0, :] - u_e)**2
-        avg_bc_loss = torch.mean(u[:, 0]**2 + u[:, -1]**2).reshape(1, 1)
-        avg_ic_loss = torch.mean(ic_loss).reshape(1, 1)
-        constr = torch.cat((avg_ic_loss, avg_bc_loss), 0)
-        penalty = torch.sum(constr**2)
+        avg_bc_loss = torch.mean(u[:, 0]**2 + u[:, -1]**2)
+        avg_ic_loss = torch.mean(ic_loss)
+        constr = torch.cat((avg_ic_loss.reshape(1, 1), avg_bc_loss.reshape(1, 1)), 0)
+        penalty = avg_bc_loss**2 + avg_ic_loss**2
         loss = pde_loss + torch.sum(Lambda * constr + 0.5 * (Mu * constr**2))
         return pde_loss, constr, penalty, loss
 
