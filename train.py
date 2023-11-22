@@ -1,13 +1,28 @@
 import torch
 import numpy as np
 import math
-from torch.optim import LBFGS
+import torch.optim
+import matplotlib.pyplot as plt
 
 
 def u_exact(x, t):
     return np.sin(math.pi * x) * math.cos(2 * math.pi * t) + np.sin(
         4 * math.pi * x) * math.cos(8 * math.pi * t) / 2
 
+def _closure():
+    u_xx = (u[1:-1, 2:] - 2 * u[1:-1, 1:-1] + u[1:-1, :-2]) * nx**2
+    u_tt = (u[2:, 1:-1] - 2 * u[1:-1, 1:-1] + u[:-2, 1:-1]) * nt**2
+    pde = torch.mean((u_tt - 4 * u_xx)**2)
+    ic = torch.mean((u[0, :] - u_e)**2)
+    bc = torch.mean(u[:, 0]**2 + u[:, -1]**2)
+    loss = pde + li * ic + lb * bc + 0.5 * (mi * ic**2 + mb * bc**2)
+    return loss, pde, ic, bc
+
+def closure():
+    opt.zero_grad()
+    loss, *rest = _closure()
+    loss.backward()
+    return loss
 
 torch.set_default_dtype(torch.float64)
 torch.manual_seed(0)
@@ -15,41 +30,31 @@ np.random.seed(0)
 nx, nt = 26, 26
 b = math.sqrt(6 / (nt * nx))
 u = torch.tensor(np.random.uniform(-b, b, (nt, nx)), requires_grad=True)
-opt = LBFGS([u], line_search_fn="strong_wolfe")
-Mu = torch.ones(2, 1)
-Lambda = torch.zeros(2, 1)
-epsilon = 1e-8
+opt = torch.optim.LBFGS([u], line_search_fn="strong_wolfe", tolerance_grad=0, tolerance_change=0)
+li, lb = 0, 0
+mi, mb = 1, 1
+epsilon = 1e-16
 mu_max = 1e4
 eta = 0
-x = np.linspace(0, 1, nx)
-u_e = torch.tensor(u_exact(x, 0))
-for epoch in range(1, 501):
-
-    def _closure():
-        u_xx = (u[1:-1, 2:] - 2 * u[1:-1, 1:-1] + u[1:-1, :-2]) * nx**2
-        u_tt = (u[2:, 1:-1] - 2 * u[1:-1, 1:-1] + u[:-2, 1:-1]) * nt**2
-        pde_loss = torch.mean((u_tt - 4 * u_xx)**2)
-        ic_loss = (u[0, :] - u_e)**2
-        bc = torch.mean(u[:, 0]**2 + u[:, -1]**2)
-        ic = torch.mean(ic_loss)
-        constr = torch.cat((ic.reshape(1, 1), bc.reshape(1, 1)), 0)
-        penalty = bc**2 + ic**2
-        loss = pde_loss + torch.sum(Lambda * constr + 0.5 * (Mu * constr**2))
-        return pde_loss, constr, penalty, loss
-
-    def closure():
-        opt.zero_grad()
-        pde_loss, constr, penalty, loss = _closure()
-        loss.backward()
-        return loss
-
+u_e = torch.tensor(u_exact(np.linspace(0, 1, nx), 0))
+for epoch in range(1, 1001):
     opt.step(closure)
-    pde_loss, constr, penalty, loss = _closure()
+    loss, pde, ic, bc = _closure()
     with torch.no_grad():
-        if torch.sqrt(penalty) >= eta / 4 and torch.sqrt(penalty) > epsilon:
-            Mu = 2 * Mu
-            Mu[Mu > mu_max] = mu_max
-            Lambda += Mu * constr
-        eta = torch.sqrt(penalty)
+        penalty = ic**2 + bc**2
+        if penalty >= eta/16 and penalty > epsilon:
+            pass
+        """
+            mi = min(2 * mi, mu_max)
+            mb = min(2 * mb, mu_max)
+            li += mi * ic
+            lb += mi * bc
+        """
+        eta = penalty
     if epoch % 20 == 1:
-        print(f": {epoch:3d} {pde_loss.detach().item():2.3e}")
+        print(f": {epoch:3d} {loss.detach().item():2.3e}")
+
+for ti in nt//2, nt - 1:
+    plt.plot(u[ti, :].detach().numpy(), 'ko')
+    plt.plot(u_exact(np.linspace(0, 1, nx), ti / nt), 'k-')
+plt.show()
