@@ -29,32 +29,29 @@ torch.manual_seed(0)
 np.random.seed(0)
 nx, nt = 26, 26
 b = math.sqrt(6 / (nt * nx))
-u = torch.tensor(np.random.uniform(-b, b, (nt, nx)), requires_grad=True)
-opt = torch.optim.LBFGS([u], line_search_fn="strong_wolfe", tolerance_grad=0, tolerance_change=0)
+u = torch.zeros((nt, nx), requires_grad=True)
+opt = torch.optim.LBFGS([u], tolerance_grad=0, tolerance_change=0)
 li, lb = 0, 0
 mi, mb = 1, 1
 epsilon = 1e-16
-mu_max = 1e4
+mu_max = 10000
 eta = 0
 u_e = torch.tensor(u_exact(np.linspace(0, 1, nx), 0))
-for epoch in range(1, 1001):
+for epoch in range(1, 10001):
     opt.step(closure)
     loss, pde, ic, bc = _closure()
     with torch.no_grad():
         penalty = ic**2 + bc**2
         if penalty >= eta/16 and penalty > epsilon:
-            pass
-        """
             mi = min(2 * mi, mu_max)
             mb = min(2 * mb, mu_max)
             li += mi * ic
             lb += mi * bc
-        """
         eta = penalty
-    if epoch % 20 == 1:
+    if epoch % 100 == 1:
         print(f": {epoch:3d} {loss.detach().item():2.3e}")
 
 for ti in nt//2, nt - 1:
-    plt.plot(u[ti, :].detach().numpy(), 'ko')
-    plt.plot(u_exact(np.linspace(0, 1, nx), ti / nt), 'k-')
+    plt.plot(u[ti, :].detach().numpy(), "ko", markerfacecolor="none")
+    plt.plot(u_exact(np.linspace(0, 1, nx), ti / nt), "k-")
 plt.show()
