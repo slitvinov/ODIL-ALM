@@ -216,7 +216,7 @@ plt.rcParams.update(params)
 
 
 def contour_sol(domain, methodname, samplename, trial):
-    data = torch.load(f'Data/{trial}_data_physics.pth')
+    data = torch.load(f'{trial}_data_physics.pth')
     x = data['x']
     t = data['t']
     u = data['u']
