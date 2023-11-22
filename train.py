@@ -9,7 +9,7 @@ def u_exact(x, t):
 
 torch.set_default_dtype(torch.float64)
 nx, nt = 26, 26
-x0 = torch.linspace(0, 1, nx).reshape(-1, 1)
+x0 = torch.linspace(0, 1, nx)
 x = x0.repeat(nt, 1).reshape(-1, 1)
 t0 = torch.linspace(0, 1, nt).reshape(-1, 1)
 t = t0.repeat(1, nx).reshape(-1, 1)
