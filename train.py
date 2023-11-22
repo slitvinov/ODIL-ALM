@@ -27,11 +27,10 @@ for epoch in range(1, 501):
         u_xx = (u[1:-1, 2:] - 2 * u[1:-1, 1:-1] + u[1:-1, :-2]) * nx**2
         u_tt = (u[2:, 1:-1] - 2 * u[1:-1, 1:-1] + u[:-2, 1:-1]) * nt**2
         pde_loss = torch.mean((u_tt - 4 * u_xx)**2)
-        bc_loss = torch.cat((u[:, 0], u[:, -1]))**2
         ic_loss = (u[0, :] - u_e)**2
-        avg_bc_loss = torch.mean(bc_loss).reshape(1, 1)
+        avg_bc_loss = torch.mean(u[:, 0]**2 + u[:, -1]**2).reshape(1, 1)
         avg_ic_loss = torch.mean(ic_loss).reshape(1, 1)
-        constr = torch.cat((, avg_bc_loss), 0)
+        constr = torch.cat((avg_ic_loss, avg_bc_loss), 0)
         penalty = torch.sum(constr**2)
         loss = pde_loss + torch.sum(Lambda * constr + 0.5 * (Mu * constr**2))
         return pde_loss, constr, penalty, loss
