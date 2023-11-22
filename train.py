@@ -21,8 +21,8 @@ Lambda = torch.zeros(2, 1)
 epsilon = 1e-8
 mu_max = 1e4
 eta = 0
-x_ic = x.reshape(nt, nx)[0, :].reshape(-1, 1)
-t_ic = t.reshape(nt, nx)[0, :].reshape(-1, 1)
+x_ic = x.reshape(nt, nx)[0, :]
+t_ic = t.reshape(nt, nx)[0, :]
 u_e = u_exact(x_ic, t_ic)
 for epoch in range(1, 501):
     def _closure():
