@@ -17,7 +17,7 @@ class Closure:
         u_tt = (u[2:, 1:-1] - 2 * u[1:-1, 1:-1] + u[:-2, 1:-1]) * (nt - 1)**2
         u_xx = (u[1:-1, 2:] - 2 * u[1:-1, 1:-1] + u[1:-1, :-2]) * (nx - 1)**2
         self.pde = torch.sum((u_tt - 4 * u_xx)**2)
-        self.g = [(u[0] - u_ic), u[:, 0], u[:, -1]]
+        self.g = [u[0] - u_ic, u[:, 0], u[:, -1]]
         self.g2 = sum(torch.sum(g**2) for g in self.g)
         loss = self.pde + sum(z @ g for z, g in zip(z, self.g)) + mu * self.g2
         loss.backward()
@@ -39,7 +39,7 @@ x = np.linspace(0, 1, nx)
 u_ic = torch.tensor([exact(0, x) for x in x])
 c = Closure()
 prev = None
-for epoch in range(101):
+for epoch in range(501):
     opt.step(c)
     with torch.no_grad():
         z = [z + 2 * mu * g for z, g in zip(z, c.g)]
