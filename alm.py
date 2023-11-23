@@ -16,11 +16,10 @@ class Closure:
         opt.zero_grad()
         u_tt = (u[2:, 1:-1] - 2 * u[1:-1, 1:-1] + u[:-2, 1:-1]) * (nt - 1)**2
         u_xx = (u[1:-1, 2:] - 2 * u[1:-1, 1:-1] + u[1:-1, :-2]) * (nx - 1)**2
-        self.pde = torch.mean((u_tt - 4 * u_xx)**2)
-        self.ic = torch.mean((u[0, :] - u_ic)**2)
-        self.bc = torch.mean(u[:, 0]**2 + u[:, -1]**2)
-        loss = self.pde + li * self.ic + lb * self.bc + 0.5 * (
-            mi * self.ic**2 + mb * self.bc**2)
+        self.pde = torch.sum((u_tt - 4 * u_xx)**2)
+        self.g = [(u[0] - u_ic), u[:, 0], u[:, -1]]
+        self.g2 = sum(torch.sum(g**2) for g in self.g)
+        loss = self.pde + sum(z @ g for z, g in zip(z, self.g)) + mu * self.g2
         loss.backward()
         return loss
 
@@ -33,27 +32,23 @@ u = torch.zeros((nt, nx), requires_grad=True)
 opt = torch.optim.LBFGS([u],
                         tolerance_grad=0,
                         tolerance_change=0,
-                        history_size=15)
-li, lb = 0, 0
-mi, mb = 1, 1
-epsilon = 1e-16
-mu_max = 10000
-eta = 0
+                        history_size=100)
+z = [torch.zeros(nx), torch.zeros(nt), torch.zeros(nt)]
+mu = 1
 x = np.linspace(0, 1, nx)
 u_ic = torch.tensor([exact(0, x) for x in x])
 c = Closure()
-for epoch in range(51):
+prev = None
+for epoch in range(101):
     opt.step(c)
     with torch.no_grad():
-        penalty = c.ic**2 + c.bc**2
-        if penalty >= eta / 16 and penalty > epsilon:
-            mi = min(2 * mi, mu_max)
-            mb = min(2 * mb, mu_max)
-            li += mi * c.ic
-            lb += mb * c.bc
-        eta = penalty
+        z = [z + 2 * mu * g for z, g in zip(z, c.g)]
+        if prev != None and 16 * c.g2 < prev:
+            mu *= 2
+            print("mu <- ", mu)
+        prev = c.g2
     if epoch % 10 == 0:
-        print(f": {epoch + 1:3d} {c.pde.detach().item():2.3e}")
+        print(f"{epoch + 1:6d} {c.pde.detach().item():2.3e}")
 
 u = u.detach().numpy()
 t = np.linspace(0, 1, nt)
@@ -64,4 +59,4 @@ for ti in 0, nt // 2, 3 * nt // 4, nt - 1:
     time = ti / (nt - 1)
     plt.plot(x, u[ti], "ko", markerfacecolor="none")
     plt.plot(x, [exact(time, x) for x in x], "k-")
-plt.savefig("train.png")
+plt.savefig("alm.png")

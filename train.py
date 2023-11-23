@@ -17,7 +17,7 @@ class Closure:
         u_tt = (u[2:, 1:-1] - 2 * u[1:-1, 1:-1] + u[:-2, 1:-1]) * (nt - 1)**2
         u_xx = (u[1:-1, 2:] - 2 * u[1:-1, 1:-1] + u[1:-1, :-2]) * (nx - 1)**2
         self.pde = torch.mean((u_tt - 4 * u_xx)**2)
-        self.ic = torch.mean((u[0, :] - u_ic)**2)
+        self.ic = torch.mean((u[0] - u_ic)**2)
         self.bc = torch.mean(u[:, 0]**2 + u[:, -1]**2)
         loss = self.pde + li * self.ic + lb * self.bc + 0.5 * (
             mi * self.ic**2 + mb * self.bc**2)
