@@ -10,8 +10,8 @@ def u_exact(x, t):
         4 * math.pi * x) * math.cos(8 * math.pi * t) / 2
 
 def _closure():
-    u_xx = (u[1:-1, 2:] - 2 * u[1:-1, 1:-1] + u[1:-1, :-2]) * (nx - 1)**2
     u_tt = (u[2:, 1:-1] - 2 * u[1:-1, 1:-1] + u[:-2, 1:-1]) * (nt - 1)**2
+    u_xx = (u[1:-1, 2:] - 2 * u[1:-1, 1:-1] + u[1:-1, :-2]) * (nx - 1)**2
     pde = torch.mean((u_tt - 4 * u_xx)**2)
     ic = torch.mean((u[0, :] - u_e)**2)
     bc = torch.mean(u[:, 0]**2 + u[:, -1]**2)
@@ -27,7 +27,7 @@ def closure():
 torch.set_default_dtype(torch.float64)
 torch.manual_seed(0)
 np.random.seed(0)
-nx, nt = 126, 126
+nx, nt = 26, 26
 b = math.sqrt(6 / (nt * nx))
 u = torch.zeros((nt, nx), requires_grad=True)
 opt = torch.optim.LBFGS([u], tolerance_grad=0, tolerance_change=0)
@@ -37,7 +37,7 @@ epsilon = 1e-16
 mu_max = 10000
 eta = 0
 u_e = torch.tensor(u_exact(np.linspace(0, 1, nx), 0))
-for epoch in range(1, 5000):
+for epoch in range(1, 500):
     opt.step(closure)
     loss, pde, ic, bc = _closure()
     with torch.no_grad():
