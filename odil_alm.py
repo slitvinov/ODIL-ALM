@@ -29,8 +29,8 @@ def u_exact(x, t):
 
 
 def discretized_physics_loss(u, x, y, domain, dom_grd):
-    deltax = (domain[1][0] - domain[0][0]) / (dom_grd[0] + 1)
-    deltat = (domain[1][1] - domain[0][1]) / (dom_grd[1] + 1)
+    deltax = (domain[1][0] - domain[0][0]) / (dom_grd[0])
+    deltat = (domain[1][1] - domain[0][1]) / (dom_grd[1])
     u_mat = u.reshape(dom_grd[1] + 1, dom_grd[0] + 1)
 
     u_xx = (u_mat[1:-1, 2:] - 2 * u_mat[1:-1, 1:-1] +
@@ -72,7 +72,7 @@ methodname = 'odil_alm'
 torch.set_default_dtype(torch.float64)
 pi = torch.tensor(np.pi)
 domain = np.array([[0., 0.], [1., 1.]])
-epochs = 500
+epochs = 51
 disp = 10
 print_to_consol = True
 trials = 5
@@ -81,7 +81,7 @@ l2_norms = []
 for trial in range(1, trials + 1):
     print("*" * 20 + f' run({trial}) ' + "*" * 20)
 
-    dom_grd = [25, 25]
+    dom_grd = [15, 30]
     samplename = "dom_grd" + str(dom_grd[0]) + "_" + str(dom_grd[1])
 
     x_dm, t_dm = fetch_grid_data(domain, dom_grd)
@@ -296,7 +296,7 @@ def contour_sol(domain, methodname, samplename, trial):
     img = ax.pcolormesh(x_star,
                         t_star,
                         np.abs(u_star_plot - u_pred_plot),
-                        norm=colors.LogNorm(vmin=1.e-3, vmax=1.e+0),
+                        norm=colors.LogNorm(),
                         cmap=cmap,
                         shading='gouraud')
     ax.set_title('$|u - \hat{u}|$')
